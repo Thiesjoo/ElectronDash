@@ -1,48 +1,87 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, screen } from "electron";
 import * as path from "path";
+import * as url from "url";
+//@ts-ignore
+import * as elecReload from "electron-reload";
+import * as WindowStateService from "electron-window-state";
 
-function createWindow() {
-	// Create the browser window.
-	const mainWindow = new BrowserWindow({
-		height: 600,
-		webPreferences: {
-			preload: path.join(__dirname, "preload.js"),
-			nodeIntegration: true,
-			allowRunningInsecureContent: true,
-			contextIsolation: false, // false if you want to run 2e2 test with Spectron
-			enableRemoteModule: true, // true if you want to run 2e2 test  with Spectron or use remote module in renderer context (ie. Angular)
-		},
-		width: 800,
+let win: BrowserWindow | null = null;
+const args = process.argv.slice(1),
+	serve = args.some((val) => val === "--serve");
+
+function createWindow(): BrowserWindow {
+	const size = screen.getPrimaryDisplay().workAreaSize;
+
+	const mainWindowState = WindowStateService({
+		defaultHeight: size.height,
+		defaultWidth: Math.floor(size.width / 3),
 	});
 
-	// and load the index.html of the app.
-	mainWindow.loadFile(path.join(__dirname, "public/index.html"));
+	// Create the browser window.
+	win = new BrowserWindow({
+		x: mainWindowState.x,
+		y: mainWindowState.y,
+		width: mainWindowState.width,
+		height: mainWindowState.height,
+		webPreferences: {
+			// nodeIntegration: true,
+			allowRunningInsecureContent: serve ? true : false, // Only allow insecure content when developing
+		},
+		title: "ElectronDash",
+	});
 
-	// Open the DevTools.
-	mainWindow.webContents.openDevTools();
+	mainWindowState.manage(win);
+
+	if (serve) {
+		win.webContents.openDevTools();
+
+		elecReload(path.join(__dirname, "dist", "main.js"), {
+			electron: require(`${__dirname}/../node_modules/electron`),
+			args: ["--serve"],
+		});
+		win.loadURL("http://localhost:4200");
+		//Auto Focus on startup for Dev
+		win.on("show", () => {
+			win?.focus();
+		});
+
+		setTimeout(() => win?.show(), 200);
+	} else {
+		win.loadURL(
+			url.format({
+				pathname: path.join(__dirname, "dist/index.html"),
+				protocol: "file:",
+				slashes: true,
+			})
+		);
+	}
+
+	win.on("closed", () => {
+		win = null;
+	});
+
+	return win;
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on("ready", () => {
-	createWindow();
+// Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
+app.on("ready", () => setTimeout(createWindow, 400));
 
-	app.on("activate", function () {
-		// On macOS it's common to re-create a window in the app when the
-		// dock icon is clicked and there are no other windows open.
-		if (BrowserWindow.getAllWindows().length === 0) createWindow();
-	});
-});
-
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// Quit when all windows are closed.
 app.on("window-all-closed", () => {
+	// On OS X it is common for applications and their menu bar
+	// to stay active until the user quits explicitly with Cmd + Q
 	if (process.platform !== "darwin") {
 		app.quit();
 	}
 });
 
-// In this file you can include the rest of your app"s specific main process
-// code. You can also put them in separate files and require them here.
+app.on("activate", () => {
+	// On OS X it's common to re-create a window in the app when the
+	// dock icon is clicked and there are no other windows open.
+	if (win === null) {
+		createWindow();
+	}
+});
