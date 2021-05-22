@@ -1,0 +1,22 @@
+{
+	"name": "electrondash",
+	"version": "1.0.0",
+	"scripts": {
+		"build:ts": "tsc && copyfiles -u 1 \"src/public/**/*\" dist/",
+		"watch:ts": "tsc -w",
+		"lint": "eslint -c .eslintrc --ext .ts ./src",
+		"watch": "nodemon -e ts,js,html -x \"rm dist/ -r && npm run build:ts\" -w src/ ",
+		"start": "npm run build:ts && electron ./dist/main.js"
+	},
+	"devDependencies": {
+		"@typescript-eslint/eslint-plugin": "^3.10.1",
+		"@typescript-eslint/parser": "^3.10.1",
+		"electron": "^12.0.9",
+		"eslint": "^7.27.0",
+		"typescript": "^4.2.4"
+	},
+	"dependencies": {
+		"copyfiles": "^2.4.1",
+		"nodemon": "^2.0.7"
+	}
+}
