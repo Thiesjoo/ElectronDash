@@ -1,8 +1,6 @@
 import { app, BrowserWindow, screen } from "electron";
 import * as path from "path";
 import * as url from "url";
-//@ts-ignore
-import * as elecReload from "electron-reload";
 import * as WindowStateService from "electron-window-state";
 
 let win: BrowserWindow | null = null;
@@ -10,6 +8,7 @@ const args = process.argv.slice(1),
 	serve = args.some((val) => val === "--serve");
 
 function createWindow(): BrowserWindow {
+	console.log("Creating window!");
 	const size = screen.getPrimaryDisplay().workAreaSize;
 
 	const mainWindowState = WindowStateService({
@@ -26,7 +25,13 @@ function createWindow(): BrowserWindow {
 		webPreferences: {
 			// nodeIntegration: true,
 			allowRunningInsecureContent: serve ? true : false, // Only allow insecure content when developing
+			preload: path.join(__dirname, "preload.js"),
+			nodeIntegration: true,
+			enableRemoteModule: true,
 		},
+		transparent: true,
+		alwaysOnTop: true,
+		frame: false,
 		title: "ElectronDash",
 	});
 
@@ -35,10 +40,6 @@ function createWindow(): BrowserWindow {
 	if (serve) {
 		win.webContents.openDevTools();
 
-		elecReload(path.join(__dirname, "dist", "main.js"), {
-			electron: require(`${__dirname}/../node_modules/electron`),
-			args: ["--serve"],
-		});
 		win.loadURL("http://localhost:4200");
 		//Auto Focus on startup for Dev
 		win.on("show", () => {

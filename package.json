@@ -1,24 +1,29 @@
 {
 	"name": "electrondash",
 	"version": "1.0.0",
+	"main": "dist/main.js",
 	"scripts": {
+		"start": "concurrently \"npm run watch:ts\" \"npm run watch:electron\"",
 		"build:ts": "tsc",
 		"watch:ts": "tsc -w",
+		"watch:electron": "cross-env NODE_ENV=dev nodemon -e js --exec \"electron dist/main.js --serve\" ",
 		"lint": "eslint -c .eslintrc --ext .ts ./src",
-		"start": "npm run build:ts && electron ./dist/main.js --serve"
+		"startold": "npm run build:ts && electron ./dist/main.js --serve"
 	},
 	"devDependencies": {
 		"@typescript-eslint/eslint-plugin": "^3.10.1",
 		"@typescript-eslint/parser": "^3.10.1",
+		"copyfiles": "^2.4.1",
+		"cross-env": "^7.0.3",
 		"electron": "^12.0.9",
+		"electron-reload": "^1.5.0",
 		"eslint": "^7.27.0",
+		"nodemon": "^2.0.7",
 		"typescript": "^4.2.4"
 	},
 	"dependencies": {
-		"copyfiles": "^2.4.1",
-		"electron-reload": "^1.5.0",
+		"concurrently": "^6.1.0",
 		"electron-settings": "^4.0.2",
-		"electron-window-state": "^5.0.3",
-		"nodemon": "^2.0.7"
+		"electron-window-state": "^5.0.3"
 	}
 }
