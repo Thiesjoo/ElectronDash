@@ -26,17 +26,27 @@ const setIgnoreMouseEvents = window
 
 let timeout: NodeJS.Timeout | null;
 
-window.addEventListener("mousemove", (event) => {
-	console.log(event.target?.nodeName.toLowerCase());
-	if (
-		["body", "html", "app-chat-card"].includes(
-			event.target?.nodeName.toLowerCase()
-		)
-	) {
-		setIgnoreMouseEvents(true, { forward: true });
-		if (timeout) clearTimeout(timeout);
-		timeout = setTimeout(function () {
-			setIgnoreMouseEvents(false);
-		}, 150);
-	} else setIgnoreMouseEvents(false);
+// window.addEventListener("mousemove", (event) => {
+// 	// console.log(event.target?.nodeName.toLowerCase());
+// 	if (
+// 		["body", "html", "app-chat-card"].includes(
+// 			event.target?.nodeName.toLowerCase()
+// 		)
+// 	) {
+// 		setIgnoreMouseEvents(true, { forward: true });
+// 		if (timeout) clearTimeout(timeout);
+// 		timeout = setTimeout(function () {
+// 			setIgnoreMouseEvents(false);
+// 		}, 150);
+// 	} else setIgnoreMouseEvents(false);
+// });
+
+import { ipcRenderer } from "electron";
+console.log(ipcRenderer.sendSync("synchronous-message", "ping")); // prints "pong"
+
+ipcRenderer.on("asynchronous-reply", (event, arg) => {
+	console.log(arg); // prints "pong"
 });
+ipcRenderer.send("asynchronous-message", "ping");
+
+window.require = require;

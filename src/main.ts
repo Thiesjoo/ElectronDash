@@ -1,13 +1,29 @@
-import { app, BrowserWindow, screen } from "electron";
+import { app, BrowserWindow, screen, session } from "electron";
 import * as path from "path";
 import * as url from "url";
 import * as WindowStateService from "electron-window-state";
+import "./services/ipc";
+import { initializeSocket } from "./services/discord-rpc";
 
 let win: BrowserWindow | null = null;
 const args = process.argv.slice(1),
 	serve = args.some((val) => val === "--serve");
 
 function createWindow(): BrowserWindow {
+	session.defaultSession.cookies
+		.get({ name: "accesstoken" }) //TODO: Maybe domain
+		.then((cookies) => {
+			console.log(cookies);
+			if (cookies.length !== 1) {
+				throw new Error("More cookies than specified");
+			}
+			const token = cookies[0].value;
+			initializeSocket(token);
+		})
+		.catch((error) => {
+			console.log(error);
+		});
+
 	console.log("Creating window!");
 	const size = screen.getPrimaryDisplay().workAreaSize;
 
@@ -23,15 +39,15 @@ function createWindow(): BrowserWindow {
 		width: mainWindowState.width,
 		height: mainWindowState.height,
 		webPreferences: {
-			// nodeIntegration: true,
-			allowRunningInsecureContent: serve ? true : false, // Only allow insecure content when developing
-			preload: path.join(__dirname, "preload.js"),
 			nodeIntegration: true,
+			allowRunningInsecureContent: true, // Only allow insecure content when developing
+			preload: path.join(__dirname, "preload.js"),
+			contextIsolation: false,
 			enableRemoteModule: true,
 		},
-		transparent: true,
-		alwaysOnTop: true,
-		frame: false,
+		// transparent: true,
+		// alwaysOnTop: true,
+		// frame: false,
 		title: "ElectronDash",
 	});
 
