@@ -1,5 +1,6 @@
-// All of the Node.js APIs are available in the preload process.
-// It has the same sandbox as a Chrome extension.
+require("electron-promise-ipc/preload");
+const electron = require("electron");
+
 console.log("PRELOAD SCRIPT IS BEING LOADED");
 window.addEventListener("DOMContentLoaded", () => {
 	console.log("Dom loaded");
@@ -18,9 +19,15 @@ window.addEventListener("DOMContentLoaded", () => {
 	}
 });
 
-const setIgnoreMouseEvents = window
-	.require("electron")
-	.remote.getCurrentWindow().setIgnoreMouseEvents;
+let currentState: boolean | null = null;
+const setIgnoreMouseEvents = async (arg: boolean) => {
+	if (currentState === arg) return;
+	let result = await electron.ipcRenderer.invoke("toggle-window", arg);
+	if (result) {
+		currentState = arg;
+	}
+	return;
+};
 
 // setIgnoreMouseEvents(true);
 
@@ -40,13 +47,5 @@ let timeout: NodeJS.Timeout | null;
 // 		}, 150);
 // 	} else setIgnoreMouseEvents(false);
 // });
-
-import { ipcRenderer } from "electron";
-console.log(ipcRenderer.sendSync("synchronous-message", "ping")); // prints "pong"
-
-ipcRenderer.on("asynchronous-reply", (event, arg) => {
-	console.log(arg); // prints "pong"
-});
-ipcRenderer.send("asynchronous-message", "ping");
 
 window.require = require;

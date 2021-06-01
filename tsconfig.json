@@ -6,8 +6,11 @@
 		"sourceMap": true,
 		"outDir": "dist",
 		"baseUrl": ".",
+		"experimentalDecorators": true,
 		"paths": {
-			"*": ["node_modules/*"]
+			"@helpers/*": ["src/helpers/*"],
+			"@services/*": ["src/services/*"],
+			"@mytypes/*": ["src/@types/*"]
 		}
 	},
 	"include": ["src/**/*"]

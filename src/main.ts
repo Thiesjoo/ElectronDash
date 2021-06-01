@@ -3,27 +3,12 @@ import * as path from "path";
 import * as url from "url";
 import * as WindowStateService from "electron-window-state";
 import "./services/ipc";
-import { initializeSocket } from "./services/discord-rpc";
 
 let win: BrowserWindow | null = null;
 const args = process.argv.slice(1),
 	serve = args.some((val) => val === "--serve");
 
 function createWindow(): BrowserWindow {
-	session.defaultSession.cookies
-		.get({ name: "accesstoken" }) //TODO: Maybe domain
-		.then((cookies) => {
-			console.log(cookies);
-			if (cookies.length !== 1) {
-				throw new Error("More cookies than specified");
-			}
-			const token = cookies[0].value;
-			initializeSocket(token);
-		})
-		.catch((error) => {
-			console.log(error);
-		});
-
 	console.log("Creating window!");
 	const size = screen.getPrimaryDisplay().workAreaSize;
 
@@ -43,7 +28,7 @@ function createWindow(): BrowserWindow {
 			allowRunningInsecureContent: true, // Only allow insecure content when developing
 			preload: path.join(__dirname, "preload.js"),
 			contextIsolation: false,
-			enableRemoteModule: true,
+			// enableRemoteModule: true, //Remote module is enaabled for the preload script to toggle mouseclick passthrough
 		},
 		// transparent: true,
 		// alwaysOnTop: true,
