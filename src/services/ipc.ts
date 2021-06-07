@@ -5,12 +5,12 @@ import { PromiseIpc } from "electron-promise-ipc/build/mainProcess";
 import { Awaited } from "src/helper/types";
 const promiseIpc = new PromiseIpc({ maxTimeoutMs: 2000 });
 
-ipcMain.handle("toggle-window", (event, arg) => {
+ipcMain.handle("toggle-window", (event, arg, arg2) => {
 	let window = BrowserWindow.fromId(event.sender.id);
 	if (!window) {
 		return false;
 	}
-	window.setIgnoreMouseEvents(arg);
+	window.setIgnoreMouseEvents(arg, arg2);
 	return true;
 });
 
