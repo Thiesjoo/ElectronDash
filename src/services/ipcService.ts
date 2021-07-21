@@ -4,16 +4,17 @@ import {
   PromiseIpc,
   PromiseIpcMain,
 } from 'electron-promise-ipc/build/mainProcess';
-import { injectable } from 'tsyringe';
+import { Injectable, Singleton } from '../helper';
 
-@injectable()
+@Singleton()
+@Injectable()
 export class PromiseIPCService {
 	promiseIPC: PromiseIpcMain = new PromiseIpc({ maxTimeoutMs: 2000 });
 	ipcMain: IpcMain = ipcMain;
 
 	constructor() {
-		// console.log("Registerd IPC handler");
-		// this.ipcMain.on("toggle-window", this.toggleWindow);
+		console.log("Registerd IPC handler");
+		this.ipcMain.on("toggle-window", this.toggleWindow);
 	}
 
 	private toggleWindow(event: IpcMainEvent, ignore: boolean, options: any) {

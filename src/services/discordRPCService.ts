@@ -2,11 +2,11 @@ import { APIMessage } from 'discord-api-types/v9';
 import { Client } from 'discord-rpc';
 import { container, delay, inject } from 'tsyringe';
 import { focusWindow, getTokenStringFromCookie } from '../helper/misc';
-import { Injectable } from '../helper/reexports';
+import { Injectable, Singleton } from '../helper/reexports';
 import { PromiseIPCService } from './';
 import { SocketManagerService } from './socketService';
 
-// @Singleton()
+@Singleton()
 @Injectable()
 export class DiscordRPCService {
 	private clientId = "731554692970315891";

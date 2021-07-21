@@ -2,6 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { decodeToken, Injectable, Singleton } from '../helper';
 import { AuthTokenPayloadDTO } from '../types/random';
 import { config } from './config';
+import { PromiseIPCService } from './ipcService';
 
 @Injectable()
 @Singleton()
@@ -11,16 +12,39 @@ export class SocketManagerService {
 
 	private toAuthenticate: { provider: string }[] = [];
 
+	private listening = false;
+
 	get connected(): boolean {
-		if (this.parsedToken || this.socket?.connected) return false;
+		if (this.parsedToken && this.socket?.connected) return true;
 
 		return true;
 	}
 
-	constructor() {}
+	constructor(private promiseIPC: PromiseIPCService) {
+		this.promiseIPC.on("enable-notifs", () => {
+			if (!this.parsedToken) {
+				throw new Error("Not logged in yet");
+			}
+			//auth receive
+			this.socket?.emit(
+				"authenticateReceiving",
+				this.parsedToken.sub,
+				(resp: any) => {
+					console.log("Response socket: ", resp);
+					this.socket?.on("add", (notification) => {
+						console.log("receieved notification", notification);
+					});
+				}
+			);
+		});
+	}
 
 	/** Returns true for new connections, false if there is already a connection */
 	async connect(token: string): Promise<boolean> {
+		if (this.parsedToken) {
+			console.error("Request pending");
+			return false;
+		}
 		return new Promise<boolean>((resolve, reject) => {
 			this.parsedToken = decodeToken(token);
 			if (!this.parsedToken) throw new Error("Token not defined");
