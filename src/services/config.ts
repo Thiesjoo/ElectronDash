@@ -1,4 +1,4 @@
-import { NotificationListeners } from "../types/notifications";
+import { NotificationListeners } from '../types/notifications';
 
 export const config: {
 	notfication: NotificationListeners;

@@ -1,6 +1,6 @@
-import { config } from "../services/config";
-import { NotificationListeners } from "../types/notifications";
-import { nativeImage, Notification } from "electron";
+import { nativeImage, Notification } from 'electron';
+import { config } from '../services/config';
+import { NotificationListeners } from '../types/notifications';
 
 export function createNotification(notification: any): Notification {
 	switch (config.notfication) {

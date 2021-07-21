@@ -1,16 +1,16 @@
 console.log("SCRIPT INIT ");
-import "reflect-metadata";
-import { app, BrowserWindow, screen } from "electron";
-import * as path from "path";
-import * as url from "url";
-import * as WindowStateService from "electron-window-state";
-import { container } from "tsyringe";
+import 'reflect-metadata';
+import { app, BrowserWindow, screen } from 'electron';
+import * as WindowStateService from 'electron-window-state';
+import * as path from 'path';
+import { container } from 'tsyringe';
+import * as url from 'url';
 import {
-	PromiseIPCService,
-	DiscordRPCService,
-	config,
-	SocketManagerService,
-} from "./services";
+  config,
+  DiscordRPCService,
+  PromiseIPCService,
+  SocketManagerService,
+} from './services';
 
 let win: BrowserWindow | null = null;
 let win2: BrowserWindow | null = null;

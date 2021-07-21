@@ -1,7 +1,7 @@
-import { io, Socket } from "socket.io-client";
-import { AuthTokenPayloadDTO } from "../types/random";
-import { decodeToken, Injectable, Singleton } from "../helper";
-import { config } from "./config";
+import { io, Socket } from 'socket.io-client';
+import { decodeToken, Injectable, Singleton } from '../helper';
+import { AuthTokenPayloadDTO } from '../types/random';
+import { config } from './config';
 
 @Injectable()
 @Singleton()

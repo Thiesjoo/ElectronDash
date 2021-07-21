@@ -1,6 +1,7 @@
-import { execSync } from "child_process";
-import { session } from "electron";
-import { AuthTokenPayloadDTO } from "../types/random";
+import { execSync } from 'child_process';
+import { session } from 'electron';
+import { AuthTokenPayloadDTO } from '../types/random';
+
 function execShellCommand(cmd: string) {
 	return execSync(cmd, { encoding: "utf-8" });
 }
