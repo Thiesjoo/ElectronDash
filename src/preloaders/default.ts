@@ -1,5 +1,4 @@
 // Load IPC promises, and replace all the versions with the correct ones.
-
 require("electron-promise-ipc/preload");
 
 console.log("PRELOAD SCRIPT IS BEING LOADED");
@@ -18,4 +17,5 @@ window.addEventListener("DOMContentLoaded", () => {
 		);
 	}
 });
+
 window.require = require;

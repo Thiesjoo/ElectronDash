@@ -1,9 +1,17 @@
 console.log("SCRIPT INIT ");
-import { app, BrowserWindow, screen, session } from "electron";
+import "reflect-metadata";
+import { app, BrowserWindow, screen } from "electron";
 import * as path from "path";
 import * as url from "url";
 import * as WindowStateService from "electron-window-state";
-import "./services/ipc";
+import { container } from "tsyringe";
+import {
+	PromiseIPCService,
+	DiscordRPCService,
+	config,
+	SocketManagerService,
+} from "./services";
+
 let win: BrowserWindow | null = null;
 let win2: BrowserWindow | null = null;
 
@@ -29,9 +37,7 @@ function createMainWindow(): BrowserWindow {
 			preload: path.join(__dirname, "preloaders/default.js"),
 			contextIsolation: false,
 		},
-		// transparent: true,
-		// alwaysOnTop: true,
-		// frame: false,
+
 		title: "ElectronDash Main App",
 	});
 
@@ -47,15 +53,12 @@ function createMainWindow(): BrowserWindow {
 }
 
 function createExtraWindow(): BrowserWindow {
-	console.log("Creating Extra window!");
-
 	const extraWindowState = WindowStateService({
 		defaultHeight: 600,
 		defaultWidth: 800,
 		file: "extra.window-state.json",
 	});
 	const size = screen.getPrimaryDisplay().workAreaSize;
-	console.log(extraWindowState.x);
 	// Create the browser window.
 	win2 = new BrowserWindow({
 		x: size.width - extraWindowState.width,
@@ -71,6 +74,7 @@ function createExtraWindow(): BrowserWindow {
 		transparent: true,
 		alwaysOnTop: true,
 		frame: false,
+		show: false,
 		title: "ElectronDash Extra App",
 	});
 
@@ -89,16 +93,20 @@ function createExtraWindow(): BrowserWindow {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
-app.on("ready", () =>
+app.on("ready", () => {
+	//Pre register all services
+	container.resolve(PromiseIPCService);
+	container.resolve(DiscordRPCService);
+	container.resolve(SocketManagerService);
 	setTimeout(() => {
 		if (!win) {
 			createMainWindow();
 		}
-		if (!win2) {
-			createExtraWindow();
-		}
-	}, 400)
-);
+		// if (!win2) {
+		// 	createExtraWindow().showInactive();
+		// }
+	}, 400);
+});
 
 // Quit when all windows are closed.
 app.on("window-all-closed", () => {
@@ -117,6 +125,12 @@ app.on("window-all-closed", () => {
 // 	}
 // });
 
+/**
+ *
+ * @param win Window to load on
+ * @param pathToLoad Path of the URL to load
+ * @param dev If true, loads from localhost:4200 with devtools open
+ */
 function loadWindowContent(
 	win: BrowserWindow,
 	pathToLoad: string,
@@ -125,13 +139,7 @@ function loadWindowContent(
 	if (dev) {
 		win.webContents.openDevTools();
 
-		win.loadURL("http://localhost:4200" + pathToLoad);
-		//Auto Focus on startup for Dev
-		win.on("show", () => {
-			win?.focus();
-		});
-
-		setTimeout(() => win?.show(), 200);
+		win.loadURL(config.devURL + pathToLoad);
 	} else {
 		win.loadURL(
 			url.format({
