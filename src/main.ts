@@ -1,19 +1,24 @@
 console.log("SCRIPT INIT ");
-import 'reflect-metadata';
-import { app, BrowserWindow, screen } from 'electron';
-import * as WindowStateService from 'electron-window-state';
-import * as path from 'path';
-import { container } from 'tsyringe';
-import * as url from 'url';
+import "reflect-metadata";
+import { app, BrowserWindow, Menu, screen, Tray } from "electron";
+import * as WindowStateService from "electron-window-state";
+import * as path from "path";
+import { container } from "tsyringe";
+import * as url from "url";
+import { getTokenStringFromCookie } from "./helper";
 import {
-  config,
-  DiscordRPCService,
-  PromiseIPCService,
-  SocketManagerService,
-} from './services';
+	DiscordRPCService,
+	getConfigKey,
+	PromiseIPCService,
+	setConfigKey,
+	SocketManagerService,
+} from "./services";
+import { NotificationListeners } from "./types/notifications";
 
 let win: BrowserWindow | null = null;
 let win2: BrowserWindow | null = null;
+
+let sampleTrayWin: BrowserWindow | null = null;
 
 function createMainWindow(): BrowserWindow {
 	console.log("Creating MAIN window!");
@@ -53,6 +58,7 @@ function createMainWindow(): BrowserWindow {
 }
 
 function createExtraWindow(): BrowserWindow {
+	console.log("Create extra window");
 	const extraWindowState = WindowStateService({
 		defaultHeight: 600,
 		defaultWidth: 800,
@@ -89,41 +95,84 @@ function createExtraWindow(): BrowserWindow {
 	return win2;
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-// Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
-app.on("ready", () => {
-	//Pre register all services
+console.log(
+	"The app config is stored in: ",
+	app.getPath("userData") + "/config.json"
+);
+
+/** Tray declared here to avoid garbage collection */
+let tray = null;
+
+app.whenReady().then(() => {
+	//Pre register all services (This is for the IPCService. Otherwise DI errors)
 	container.resolve(PromiseIPCService);
 	container.resolve(DiscordRPCService);
 	container.resolve(SocketManagerService);
-	setTimeout(() => {
-		if (!win) {
-			createMainWindow();
+	console.log("App starting");
+
+	//Create tray icon (Electron icon)
+	tray = new Tray("/usr/share/icons/hicolor/22x22/apps/orca.png");
+
+	const listenerChanged = (listener: { id: string }) => {
+		setConfigKey("notification", listener.id as NotificationListeners);
+	};
+
+	const socketChanged = async (val: boolean) => {
+		const sockets = container.resolve(SocketManagerService);
+
+		if (val) {
+			if (!sockets.connected) {
+				const token = await getTokenStringFromCookie();
+				await sockets.connect(token);
+			}
+			sockets.authenticateReceiving();
+		} else {
+			sockets.stopReceiving();
 		}
-		// if (!win2) {
-		// 	createExtraWindow().showInactive();
-		// }
-	}, 400);
-});
+	};
 
-// Quit when all windows are closed.
-app.on("window-all-closed", () => {
-	// On OS X it is common for applications and their menu bar
-	// to stay active until the user quits explicitly with Cmd + Q
-	if (process.platform !== "darwin") {
-		app.quit();
-	}
-});
+	socketChanged(getConfigKey("listenForNotifications"));
 
-// app.on("activate", () => {
-// 	// On OS X it's common to re-create a window in the app when the
-// 	// dock icon is clicked and there are no other windows open.
-// 	if (win === null) {
-// 		createWindow();
-// 	}
-// });
+	const notfListen = getConfigKey("notification");
+
+	const contextMenu = Menu.buildFromTemplate([
+		{
+			label: "Toggle listening",
+			type: "checkbox",
+			checked: getConfigKey("listenForNotifications"),
+			click: async (a) => {
+				console.log("Toggling listening", a.checked);
+				await socketChanged(a.checked);
+				setConfigKey("listenForNotifications", a.checked);
+			},
+		},
+		{
+			label: "View",
+			submenu: [
+				{
+					id: NotificationListeners.NativeElectron,
+					label: "Electron Native",
+				},
+				{
+					id: NotificationListeners.Native,
+					label: "Native",
+				},
+				{
+					id: NotificationListeners.OwnImplementation,
+					label: "Own implementation",
+				},
+			].map((x) => {
+				return {
+					...x,
+					checked: notfListen === x.id,
+					type: "radio",
+					click: listenerChanged,
+				};
+			}),
+		},
+	]);
+	tray.setContextMenu(contextMenu);
+});
 
 /**
  *
@@ -139,7 +188,7 @@ function loadWindowContent(
 	if (dev) {
 		win.webContents.openDevTools();
 
-		win.loadURL(config.devURL + pathToLoad);
+		win.loadURL(getConfigKey("devURL") + pathToLoad);
 	} else {
 		win.loadURL(
 			url.format({

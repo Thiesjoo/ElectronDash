@@ -1,8 +1,9 @@
-import { io, Socket } from 'socket.io-client';
-import { decodeToken, Injectable, Singleton } from '../helper';
-import { AuthTokenPayloadDTO } from '../types/random';
-import { config } from './config';
-import { PromiseIPCService } from './ipcService';
+import { io, Socket } from "socket.io-client";
+import { createNotification, decodeToken } from "../helper";
+import { Injectable, Singleton } from "../helper/reexports";
+import { AuthTokenPayloadDTO } from "../types/random";
+import { getConfigKey } from "./config";
+import { PromiseIPCService } from "./ipcService";
 
 @Injectable()
 @Singleton()
@@ -12,31 +13,46 @@ export class SocketManagerService {
 
 	private toAuthenticate: { provider: string }[] = [];
 
-	private listening = false;
+	private receivingAuthenticated = {
+		requested: false,
+		actual: false,
+		listener: null,
+	};
 
 	get connected(): boolean {
 		if (this.parsedToken && this.socket?.connected) return true;
 
-		return true;
+		return false;
 	}
 
 	constructor(private promiseIPC: PromiseIPCService) {
-		this.promiseIPC.on("enable-notifs", () => {
-			if (!this.parsedToken) {
-				throw new Error("Not logged in yet");
+		this.promiseIPC.on("enable-notifs", this.authenticateReceiving);
+	}
+
+	async authenticateReceiving() {
+		if (this.receivingAuthenticated.actual) return;
+		this.receivingAuthenticated.requested = true;
+		if (!this.parsedToken) {
+			throw new Error("Not logged in yet");
+		}
+		console.log("Trying for auth receive");
+		//auth receive
+		this.socket?.emit(
+			"authenticateReceiving",
+			this.parsedToken.sub,
+			(resp: any) => {
+				this.receivingAuthenticated.actual = true;
+				console.log("Response socket: ", resp);
+				this.socket?.on("add", (notification) => {
+					console.log("Received notification", notification);
+					createNotification(notification);
+				});
 			}
-			//auth receive
-			this.socket?.emit(
-				"authenticateReceiving",
-				this.parsedToken.sub,
-				(resp: any) => {
-					console.log("Response socket: ", resp);
-					this.socket?.on("add", (notification) => {
-						console.log("receieved notification", notification);
-					});
-				}
-			);
-		});
+		);
+	}
+
+	async stopReceiving() {
+		this.socket?.off("add");
 	}
 
 	/** Returns true for new connections, false if there is already a connection */
@@ -48,16 +64,21 @@ export class SocketManagerService {
 		return new Promise<boolean>((resolve, reject) => {
 			this.parsedToken = decodeToken(token);
 			if (!this.parsedToken) throw new Error("Token not defined");
-			this.socket = io(config.socketURL, { auth: { token } });
+			this.socket = io(getConfigKey("socketURL"), { auth: { token } });
 
 			this.socket.on("connect", () => {
 				resolve(true);
+				//TODO: Maybe reconnect on api (Get all the missed notifications)
+				if (this.receivingAuthenticated.requested) this.authenticateReceiving();
 				this.toAuthenticate.forEach((x) => {
 					this.socket?.emit("authenticateSending", {
 						provider: x.provider,
 						id: this.parsedToken?.sub,
 					});
 				});
+			});
+			this.socket.on("disconnect", () => {
+				this.receivingAuthenticated.actual = false;
 			});
 		});
 	}
@@ -73,6 +94,7 @@ export class SocketManagerService {
 			if (!this.socket || !this.parsedToken)
 				return reject("Socket not connected yet!");
 
+			//TODO: ACK timeout
 			this.socket.emit(
 				"authenticateSending",
 				{

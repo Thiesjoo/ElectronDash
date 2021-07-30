@@ -1,10 +1,10 @@
-import { BrowserWindow, IpcMain, ipcMain, IpcMainEvent } from 'electron';
-import { Listener } from 'electron-promise-ipc/build/base';
+import { BrowserWindow, IpcMain, ipcMain, IpcMainEvent } from "electron";
+import { Listener } from "electron-promise-ipc/build/base";
 import {
-  PromiseIpc,
-  PromiseIpcMain,
-} from 'electron-promise-ipc/build/mainProcess';
-import { Injectable, Singleton } from '../helper';
+	PromiseIpc,
+	PromiseIpcMain,
+} from "electron-promise-ipc/build/mainProcess";
+import { Injectable, Singleton } from "../helper/reexports";
 
 @Singleton()
 @Injectable()
