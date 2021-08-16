@@ -11,6 +11,7 @@ import { SocketManagerService } from './socketService';
 export class DiscordRPCService {
 	private clientId = "731554692970315891";
 	private scopes = ["rpc", "rpc.notifications.read", "rpc.activities.write"];
+	//TODO: Add discord snap path
 	private client = new Client({ transport: "ipc" });
 
 	constructor(
@@ -46,20 +47,22 @@ export class DiscordRPCService {
 	 */
 	private async discordLogin() {
 		console.log("Triggering discord login");
-		const token = await getTokenStringFromCookie();
-		const socketManager = container.resolve(SocketManagerService);
-		console.log("got here");
 
 		//All the async stuff happens in a seperate function
 		(async () => {
-			console.log("Trying to init socket with token: ", token);
-			const result = await socketManager.connect(token);
-			console.log("Socket connection result: ", result);
-			console.log("Trying to authenticate sending");
-
-			const authInfo = await socketManager.authenticateSending("discord");
-			console.log("Got authinfo: ", authInfo, "Now logging into discord");
-			await this.connectToDiscord(authInfo);
+			try {
+				const token = await getTokenStringFromCookie();
+				const socketManager = container.resolve(SocketManagerService);
+				console.log("Trying to init socket with token: ", token);
+				const result = await socketManager.connect(token);
+				console.log("Socket connection result: ", result);
+				console.log("Trying to authenticate sending");
+				const authInfo = await socketManager.authenticateSending("discord");
+				console.log("Got authinfo: ", authInfo, "Now logging into discord");
+				await this.connectToDiscord(authInfo);
+			} catch (e) {
+				console.error("SOMETHING WENT WRONG INSIDE DISCORDLOGIN(), ", e);
+			}
 		})();
 
 		//Early return to prevent timeout. True means: old socket got destroyed and user is logged in. There can still be errors due to discord RPC

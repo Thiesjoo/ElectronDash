@@ -1,19 +1,19 @@
 console.log("SCRIPT INIT ");
-import "reflect-metadata";
-import { app, BrowserWindow, Menu, screen, Tray } from "electron";
-import * as WindowStateService from "electron-window-state";
-import * as path from "path";
-import { container } from "tsyringe";
-import * as url from "url";
-import { getTokenStringFromCookie } from "./helper";
+import 'reflect-metadata';
+import { app, BrowserWindow, Menu, screen, Tray } from 'electron';
+import * as WindowStateService from 'electron-window-state';
+import * as path from 'path';
+import { container } from 'tsyringe';
+import * as url from 'url';
+import { getTokenStringFromCookie } from './helper';
 import {
-	DiscordRPCService,
-	getConfigKey,
-	PromiseIPCService,
-	setConfigKey,
-	SocketManagerService,
-} from "./services";
-import { NotificationListeners } from "./types/notifications";
+  DiscordRPCService,
+  getConfigKey,
+  PromiseIPCService,
+  setConfigKey,
+  SocketManagerService,
+} from './services';
+import { NotificationListeners } from './types/notifications';
 
 let win: BrowserWindow | null = null;
 let win2: BrowserWindow | null = null;
@@ -97,6 +97,7 @@ function createExtraWindow(): BrowserWindow {
 
 console.log(
 	"The app config is stored in: ",
+
 	app.getPath("userData") + "/config.json"
 );
 
@@ -109,6 +110,8 @@ app.whenReady().then(() => {
 	container.resolve(DiscordRPCService);
 	container.resolve(SocketManagerService);
 	console.log("App starting");
+
+	createMainWindow();
 
 	//Create tray icon (Electron icon)
 	tray = new Tray("/usr/share/icons/hicolor/22x22/apps/orca.png");
@@ -147,7 +150,7 @@ app.whenReady().then(() => {
 			},
 		},
 		{
-			label: "View",
+			label: "Type of notification",
 			submenu: [
 				{
 					id: NotificationListeners.NativeElectron,

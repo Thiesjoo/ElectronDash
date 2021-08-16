@@ -1,15 +1,21 @@
-import { nativeImage, Notification } from "electron";
-import { getConfigKey } from "../services";
-import { NotificationListeners } from "../types/notifications";
+import { nativeImage, Notification } from 'electron';
+import { getConfigKey } from '../services';
+import { NotificationListeners } from '../types/notifications';
 
 export function createNotification(notification: any): Notification | void {
 	try {
 		switch (getConfigKey("notification")) {
 			case NotificationListeners.NativeElectron: {
-				const icon = nativeImage.createFromDataURL(notification.image);
-				console.log("GOt here right?", icon);
+				const icon = notification.image.startsWith("data")
+					? nativeImage.createFromDataURL(notification.image)
+					: undefined;
+				console.log(
+					"Trying to create native electron notification: ",
+					icon,
+					notification
+				);
 				return new Notification({
-					title: notification.title,
+					title: "electron+_ " + notification.title,
 					body: notification.message,
 					icon,
 				}).show();

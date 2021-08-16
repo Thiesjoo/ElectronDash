@@ -1,9 +1,9 @@
-import { io, Socket } from "socket.io-client";
-import { createNotification, decodeToken } from "../helper";
-import { Injectable, Singleton } from "../helper/reexports";
-import { AuthTokenPayloadDTO } from "../types/random";
-import { getConfigKey } from "./config";
-import { PromiseIPCService } from "./ipcService";
+import { io, Socket } from 'socket.io-client';
+import { createNotification, decodeToken } from '../helper';
+import { Injectable, Singleton } from '../helper/reexports';
+import { AuthTokenPayloadDTO } from '../types/random';
+import { getConfigKey } from './config';
+import { PromiseIPCService } from './ipcService';
 
 @Injectable()
 @Singleton()
@@ -14,8 +14,11 @@ export class SocketManagerService {
 	private toAuthenticate: { provider: string }[] = [];
 
 	private receivingAuthenticated = {
+		/** Check if we should authenticate */
 		requested: false,
+		/** Are we currently authenticated */
 		actual: false,
+		/** Active listener */
 		listener: null,
 	};
 
@@ -51,6 +54,16 @@ export class SocketManagerService {
 		);
 	}
 
+	async destroy() {
+		this.stopReceiving();
+		this.socket?.disconnect();
+		this.socket = undefined;
+		this.parsedToken = undefined;
+		this.toAuthenticate = [];
+		this.receivingAuthenticated.requested = false;
+		this.receivingAuthenticated.requested = false;
+	}
+
 	async stopReceiving() {
 		this.socket?.off("add");
 	}
@@ -67,6 +80,7 @@ export class SocketManagerService {
 			this.socket = io(getConfigKey("socketURL"), { auth: { token } });
 
 			this.socket.on("connect", () => {
+				console.log("socket connected");
 				resolve(true);
 				//TODO: Maybe reconnect on api (Get all the missed notifications)
 				if (this.receivingAuthenticated.requested) this.authenticateReceiving();
@@ -76,6 +90,13 @@ export class SocketManagerService {
 						id: this.parsedToken?.sub,
 					});
 				});
+			});
+			//TODO: Add socket typing right here
+			this.socket.on("exception", (err) => {
+				console.error("Socket errored: ", err);
+				if (err?.error?.status === 401) {
+					this.destroy();
+				}
 			});
 			this.socket.on("disconnect", () => {
 				this.receivingAuthenticated.actual = false;
@@ -88,8 +109,8 @@ export class SocketManagerService {
 	): Promise<{ accessToken: string }> {
 		return new Promise((resolve, reject) => {
 			let timeout = setTimeout(() => {
-				reject("Response took too long");
-			}, 2000);
+				reject("Response of authSending socket took too long");
+			}, 5000);
 
 			if (!this.socket || !this.parsedToken)
 				return reject("Socket not connected yet!");
@@ -101,7 +122,11 @@ export class SocketManagerService {
 					provider: providerName,
 					id: this.parsedToken.sub, //UserID
 				},
-				(provider: { accessToken: string }) => {
+				(provider: { accessToken: string }, err: any) => {
+					if (err || !provider.accessToken) {
+						reject(err);
+						return clearTimeout(timeout);
+					}
 					clearTimeout(timeout);
 					this.toAuthenticate.push({ provider: providerName });
 					resolve(provider);
